@@ -1,0 +1,22 @@
+# Render Blueprint — deploys the Jackson Ryder website as a web service.
+# Connect your GitHub repo at https://render.com ("New +" → "Blueprint").
+services:
+  - type: web
+    name: jackson-ryder
+    runtime: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    envVars:
+      - key: SMTP_USER
+        sync: false          # jacksoonryder336@gmail.com
+      - key: SMTP_PASS
+        sync: false          # your Gmail App Password
+      - key: ADMIN_USER
+        sync: false          # admin
+      - key: ADMIN_PASSWORD
+        sync: false          # a strong password
+      - key: SECRET
+        sync: false          # a long random string
+      - key: MAIL_TO
+        sync: false          # optional, defaults to jacksoonryder336@gmail.com
