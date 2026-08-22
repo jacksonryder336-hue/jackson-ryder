@@ -11,7 +11,7 @@ services:
       - key: DATABASE_URL
         sync: false          # Neon connection string (postgresql://...)
       - key: SMTP_USER
-        sync: false          # jacksoonryder336@gmail.com
+        sync: false          # jacksonryder336@gmail.com
       - key: SMTP_PASS
         sync: false          # your Gmail App Password
       - key: ADMIN_USER
@@ -21,4 +21,4 @@ services:
       - key: SECRET
         sync: false          # a long random string
       - key: MAIL_TO
-        sync: false          # optional, defaults to jacksoonryder336@gmail.com
+        sync: false          # optional, defaults to jacksonryder336@gmail.com

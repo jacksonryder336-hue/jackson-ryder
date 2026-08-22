@@ -16,7 +16,7 @@
 const SITE = {
   name: "Jackson Ryder",
   tagline: "Singer | Songwriter | Music Producer | Lyric Video Creator",
-  contactEmail: "jacksoonryder336@gmail.com",      // enquiries are delivered here
+  contactEmail: "jacksonryder336@gmail.com",      // enquiries are delivered here
   location: "Lagos, Nigeria",
 
   /* ---------- SOCIAL LINKS ----------

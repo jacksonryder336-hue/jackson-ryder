@@ -445,7 +445,7 @@ function initModals() {
 const PRIVACY_TEXT = `
   <p>Your privacy matters. Information you submit through the contact form (name, email, phone and message) is used only to respond to your enquiry and is never sold or shared with third parties.</p>
   <p>This website may use basic, privacy-respecting analytics to understand how visitors use the site. No personally identifiable information is collected automatically.</p>
-  <p>If you have any questions about how your data is handled, contact jacksoonryder336@gmail.com.</p>`;
+  <p>If you have any questions about how your data is handled, contact jacksonryder336@gmail.com.</p>`;
 
 const TERMS_TEXT = `
   <p>By using this website you agree to use it lawfully and not to submit false, misleading or harmful information through its forms.</p>

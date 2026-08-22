@@ -60,12 +60,12 @@ PostgreSQL** database so it survives redeploys. This is free via **Neon**:
 The form **saves every enquiry to the database regardless**, but to also receive
 the email in your inbox:
 
-1. Enable **2-Step Verification** for `jacksoonryder336@gmail.com`:
+1. Enable **2-Step Verification** for `jacksonryder336@gmail.com`:
    https://myaccount.google.com/security
 2. Create an **App Password**: https://myaccount.google.com/apppasswords
 3. In `.env` set:
    ```
-   SMTP_USER=jacksoonryder336@gmail.com
+   SMTP_USER=jacksonryder336@gmail.com
    SMTP_PASS=your-16-character-app-password
    ```
 
