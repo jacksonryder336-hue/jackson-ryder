@@ -1,5 +1,5 @@
 /* =====================================================================
-   JACKSON RYDER — WEBSITE CONTENT
+   JACKSON RYDER, WEBSITE CONTENT
    ---------------------------------------------------------------------
    This is the ONLY file you need to edit to update the website.
 
@@ -9,7 +9,7 @@
    ► Change your bio     → edit the  ABOUT  object
    ► Change social links → edit  SITE.social
 
-   Everything below is a PLACEHOLDER — replace it with your real
+   Everything below is a PLACEHOLDER, replace it with your real
    content. New items automatically appear on the site, no redesign.
    ===================================================================== */
 
@@ -35,20 +35,20 @@ const SITE = {
 };
 
 /* =====================================================================
-   ABOUT — the artist bio (edit freely)
+   ABOUT, the artist bio (edit freely)
    ===================================================================== */
 const ABOUT = {
   photo: "assets/about-portrait.jpg",   // replace with your own photo
   heading: "The Artist Behind the Music",
   intro: "Jackson Ryder is a singer, songwriter, music producer and lyric video creator crafting music that speaks and stories that stay.",
   bio: [
-    "Replace this paragraph with your biography — who you are, where you come from, and what drives you as an artist.",
-    "Replace this paragraph with your musical background and creative journey — how you started, what shaped your sound, and the milestones along the way."
+    "Replace this paragraph with your biography, who you are, where you come from, and what drives you as an artist.",
+    "Replace this paragraph with your musical background and creative journey, how you started, what shaped your sound, and the milestones along the way."
   ],
   points: [
-    { label: "Musical Style", text: "Describe your style here — e.g. a fusion of Afro-fusion, R&B and contemporary pop." },
-    { label: "Vision",       text: "Describe your vision here — the message you want your music to carry into the world." },
-    { label: "Experience",   text: "Describe your experience here — years in music, collaborations, and notable work." }
+    { label: "Musical Style", text: "Describe your style here, e.g. a fusion of Afro-fusion, R&B and contemporary pop." },
+    { label: "Vision",       text: "Describe your vision here, the message you want your music to carry into the world." },
+    { label: "Experience",   text: "Describe your experience here, years in music, collaborations, and notable work." }
   ]
 };
 
@@ -69,7 +69,7 @@ var SONGS = [
     cover: "assets/cover-silent-thug.jpg",
     genre: "Genre",
     releaseDate: "2026",
-    description: "Replace this text with a short description of the song — the story behind it, the mood, and what inspired it.",
+    description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it.",
     audioUrl: "",
     youtubeId: "",
     links: {
@@ -85,7 +85,7 @@ var SONGS = [
     cover: "assets/cover-1.jpg",
     genre: "Genre",
     releaseDate: "2026",
-    description: "Replace this text with a short description of the song — the story behind it, the mood, and what inspired it.",
+    description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it.",
     audioUrl: "",
     youtubeId: "",
     links: {
@@ -101,7 +101,7 @@ var SONGS = [
     cover: "assets/cover-2.jpg",
     genre: "Genre",
     releaseDate: "2026",
-    description: "Replace this text with a short description of the song — the story behind it, the mood, and what inspired it.",
+    description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it.",
     audioUrl: "",
     youtubeId: "",
     links: {
@@ -156,22 +156,22 @@ var SONGWRITING_PROJECTS = [
   {
     title: "Your Songwriting Project",
     genre: "Genre",
-    description: "Replace this text with a summary of the songwriting project — the story, emotion or idea you turned into a song.",
-    lyricsExcerpt: "Replace this with a short excerpt of the lyrics — two or three lines that capture the heart of the song.",
+    description: "Replace this text with a summary of the songwriting project, the story, emotion or idea you turned into a song.",
+    lyricsExcerpt: "Replace this with a short excerpt of the lyrics, two or three lines that capture the heart of the song.",
     audioUrl: ""
   },
   {
     title: "Your Songwriting Project",
     genre: "Genre",
-    description: "Replace this text with a summary of the songwriting project — the story, emotion or idea you turned into a song.",
-    lyricsExcerpt: "Replace this with a short excerpt of the lyrics — two or three lines that capture the heart of the song.",
+    description: "Replace this text with a summary of the songwriting project, the story, emotion or idea you turned into a song.",
+    lyricsExcerpt: "Replace this with a short excerpt of the lyrics, two or three lines that capture the heart of the song.",
     audioUrl: ""
   },
   {
     title: "Your Songwriting Project",
     genre: "Genre",
-    description: "Replace this text with a summary of the songwriting project — the story, emotion or idea you turned into a song.",
-    lyricsExcerpt: "Replace this with a short excerpt of the lyrics — two or three lines that capture the heart of the song.",
+    description: "Replace this text with a summary of the songwriting project, the story, emotion or idea you turned into a song.",
+    lyricsExcerpt: "Replace this with a short excerpt of the lyrics, two or three lines that capture the heart of the song.",
     audioUrl: ""
   }
 ];
@@ -180,7 +180,7 @@ var SONGWRITING_PROJECTS = [
    PRODUCTION SERVICES  (icon keys below)
    ===================================================================== */
 var PRODUCTION_SERVICES = [
-  { icon: "production",   name: "Music Production",     description: "Full production from raw idea to finished record — sound design, arrangement and polish." },
+  { icon: "production",   name: "Music Production",     description: "Full production from raw idea to finished record, sound design, arrangement and polish." },
   { icon: "beat",         name: "Beat Production",      description: "Original, radio-ready beats built around your sound and direction." },
   { icon: "arrangement",  name: "Song Arrangement",     description: "Structuring songs so every section hits with intention, energy and emotion." },
   { icon: "vocal",        name: "Vocal Production",     description: "Vocal direction, comping and tuning for performances that feel alive." },
@@ -257,7 +257,7 @@ var PORTFOLIO_ITEMS = [
 ];
 
 /* =====================================================================
-   SERVICES (the four main services) — "Enquire Now" opens the contact
+   SERVICES (the four main services), "Enquire Now" opens the contact
    form with the matching service pre-selected.
    ===================================================================== */
 var SERVICES = [

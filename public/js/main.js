@@ -1,5 +1,5 @@
 /* =====================================================================
-   JACKSON RYDER — SITE ENGINE
+   JACKSON RYDER, SITE ENGINE
    Renders every section from the data in content.js and wires up all
    interactions (nav, modals, filters, players, contact form).
    ===================================================================== */
@@ -153,7 +153,7 @@ function renderMusic() {
     return `
       <article class="music-card reveal">
         <div class="music-card__cover">
-          <img src="${escapeHtml(song.cover)}" alt="${escapeHtml(song.title)} — ${escapeHtml(song.artist)} cover art" loading="lazy" />
+          <img src="${escapeHtml(song.cover)}" alt="${escapeHtml(song.title)}, ${escapeHtml(song.artist)} cover art" loading="lazy" />
         </div>
         <div class="music-card__body">
           <div class="music-card__meta">
@@ -241,7 +241,7 @@ function renderPortfolio() {
   const grid = $("#portfolioGrid");
   grid.innerHTML = PORTFOLIO_ITEMS.map((p, i) => `
     <article class="portfolio-item reveal" data-category="${escapeHtml(p.category)}" data-index="${i}">
-      <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)} — ${CATEGORY_LABELS[p.category] || ""}" loading="lazy" />
+      <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}, ${CATEGORY_LABELS[p.category] || ""}" loading="lazy" />
       ${
         p.mediaType === "video"
           ? `<span class="portfolio-item__play">${ICONS.play}</span>`
@@ -564,7 +564,7 @@ function initContactForm() {
         );
       }
     } catch (err) {
-      setNote("Network error — please check your connection and try again.", "error");
+      setNote("Network error, please check your connection and try again.", "error");
     } finally {
       submitBtn.disabled = false;
       btnLabel.textContent = "Send Enquiry";
@@ -600,7 +600,7 @@ async function loadContent() {
       }
     }
   } catch (e) {
-    /* offline / static hosting — use content.js seed */
+    /* offline / static hosting, use content.js seed */
   }
 }
 

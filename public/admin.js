@@ -1,4 +1,4 @@
-/* Jackson Ryder — Admin dashboard logic */
+/* Jackson Ryder, Admin dashboard logic */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -173,7 +173,7 @@ function enqRow(e) {
   return `
   <div class="list-row ${e.status === "read" ? "enquiry--read" : ""}">
     <div class="list-row__main">
-      <div class="list-row__title">${esc(e.name)} — ${esc(e.service || "General")}</div>
+      <div class="list-row__title">${esc(e.name)}, ${esc(e.service || "General")}</div>
       <div class="list-row__sub">${esc(e.email)} · ${esc(e.subject)} · ${esc(e.created_at)}</div>
     </div>
     <div class="list-row__actions">
@@ -216,7 +216,7 @@ async function renderSongs(c) {
   c.innerHTML = `
     <div class="panel"><div class="panel__head"><h3>All Songs (${items.length})</h3>
       <button class="btn btn--primary" data-add>+ Add Song</button></div>
-    <div class="panel__body">${items.map((s) => listRowHTML(s, s.cover, s.title, `${s.artist} · ${s.genre || "—"}`)).join("") || '<p style="color:var(--muted)">No songs yet.</p>'}</div></div>`;
+    <div class="panel__body">${items.map((s) => listRowHTML(s, s.cover, s.title, `${s.artist} · ${s.genre || ""}`)).join("") || '<p style="color:var(--muted)">No songs yet.</p>'}</div></div>`;
   $("[data-add]", c).addEventListener("click", () => openForm("songs"));
   bindRowActions(c, "songs", () => renderSongs(c));
 }
@@ -363,7 +363,7 @@ async function renderEnquiries(c) {
       ${items.length ? items.map((e) => `
       <div class="list-row ${e.status === "read" ? "enquiry--read" : ""}">
         <div class="list-row__main">
-          <div class="list-row__title">${e.status === "new" ? "● " : ""}${esc(e.name)} <span style="color:var(--accent-2);font-weight:500">— ${esc(e.service)}</span></div>
+          <div class="list-row__title">${e.status === "new" ? "● " : ""}${esc(e.name)} <span style="color:var(--accent-2);font-weight:500"> ${esc(e.service)}</span></div>
           <div class="list-row__sub">${esc(e.email)}${e.phone ? " · " + esc(e.phone) : ""} · ${esc(e.created_at)}</div>
         </div>
         <div class="list-row__actions">
@@ -381,7 +381,7 @@ async function renderEnquiries(c) {
         <div class="enquiry__meta">
           <span><strong>${esc(e.name)}</strong></span>
           <span>${esc(e.email)}</span>
-          <span>${esc(e.phone || "—")}</span>
+          <span>${esc(e.phone || "")}</span>
           <span>${esc(e.service)}</span>
           <span>${esc(e.created_at)}</span>
         </div>
