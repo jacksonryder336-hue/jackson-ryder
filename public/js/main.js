@@ -239,6 +239,17 @@ const CATEGORY_LABELS = {
 
 function renderPortfolio() {
   const grid = $("#portfolioGrid");
+  const filters = $("#portfolioFilters");
+  if (!PORTFOLIO_ITEMS.length) {
+    if (filters) filters.style.display = "none";
+    grid.innerHTML = `
+      <div class="portfolio-empty">
+        <p class="portfolio-empty__eyebrow">Portfolio</p>
+        <p class="portfolio-empty__text">New projects will appear here soon.</p>
+      </div>`;
+    return;
+  }
+  if (filters) filters.style.display = "";
   grid.innerHTML = PORTFOLIO_ITEMS.map((p, i) => `
     <article class="portfolio-item reveal" data-category="${escapeHtml(p.category)}" data-index="${i}">
       <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}, ${CATEGORY_LABELS[p.category] || ""}" loading="lazy" />
@@ -584,7 +595,7 @@ async function loadContent() {
     if (Array.isArray(data.songs) && data.songs.length) SONGS = data.songs;
     if (Array.isArray(data.videos) && data.videos.length) LYRIC_VIDEOS = data.videos;
     if (Array.isArray(data.songwriting) && data.songwriting.length) SONGWRITING_PROJECTS = data.songwriting;
-    if (Array.isArray(data.projects) && data.projects.length) PORTFOLIO_ITEMS = data.projects;
+    if (Array.isArray(data.projects)) PORTFOLIO_ITEMS = data.projects;
 
     if (data.settings) {
       if (data.settings.social) {

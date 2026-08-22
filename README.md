@@ -13,7 +13,7 @@ that emails enquiries straight to Gmail**.
   Portfolio (with filters + detail modals), Services, Testimonials, Contact.
 - **Admin dashboard** at `/admin` — manage songs, lyric videos, songwriting
   projects, portfolio projects, enquiries and settings — no code needed.
-- **Database** (SQLite) storing all content and every enquiry.
+- **Database** (PostgreSQL via Neon) storing all content and every enquiry permanently.
 - **File uploads** — audio, video and images, uploaded from the dashboard.
 - **Contact form** → validated, spam-protected, rate-limited → emails you
   (Gmail) **and** saves the enquiry in the dashboard.
@@ -25,7 +25,7 @@ that emails enquiries straight to Gmail**.
 
 ```bash
 npm install
-cp .env.example .env      # then edit .env (email + admin password)
+cp .env.example .env      # then edit .env (DATABASE_URL + email + admin password)
 npm start
 ```
 
@@ -41,7 +41,21 @@ Password: jackson2026   ← change this!
 
 ---
 
-## ✉️ 1. Enable Gmail notifications (required for email to work)
+## 🗄️ 1. Set up the database (Neon — free, permanent)
+
+Your content (songs, portfolios, bio, enquiries) is stored in a **hosted
+PostgreSQL** database so it survives redeploys. This is free via **Neon**:
+
+1. Create a free account at https://neon.tech
+2. Create a project (any name/region)
+3. Copy the **connection string** (starts with `postgresql://...`)
+4. Set it as `DATABASE_URL` in `.env` (or in Render's environment variables)
+
+> Without `DATABASE_URL`, the site won't start (the database is required).
+
+---
+
+## ✉️ 2. Enable Gmail notifications (required for email to work)
 
 The form **saves every enquiry to the database regardless**, but to also receive
 the email in your inbox:

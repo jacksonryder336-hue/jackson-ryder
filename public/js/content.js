@@ -193,68 +193,10 @@ var PRODUCTION_SERVICES = [
    PORTFOLIO  (category: "music" | "songwriting" | "production" | "lyric-video")
    mediaType: "image" or "video"; mediaUrl = video embed/watch link if video
    ===================================================================== */
-var PORTFOLIO_ITEMS = [
-  {
-    title: "Your Project",
-    category: "music",
-    image: "assets/cover-1.jpg",
-    mediaType: "image",
-    mediaUrl: "",
-    year: "2026",
-    description: "Replace this text with a description of the project.",
-    details: ["Replace with a project detail.", "Replace with another detail."]
-  },
-  {
-    title: "Your Project",
-    category: "songwriting",
-    image: "assets/cover-2.jpg",
-    mediaType: "image",
-    mediaUrl: "",
-    year: "2026",
-    description: "Replace this text with a description of the project.",
-    details: ["Replace with a project detail.", "Replace with another detail."]
-  },
-  {
-    title: "Your Project",
-    category: "production",
-    image: "assets/cover-3.jpg",
-    mediaType: "image",
-    mediaUrl: "",
-    year: "2026",
-    description: "Replace this text with a description of the project.",
-    details: ["Replace with a project detail.", "Replace with another detail."]
-  },
-  {
-    title: "Your Lyric Video",
-    category: "lyric-video",
-    image: "assets/video-1.jpg",
-    mediaType: "video",
-    mediaUrl: "",
-    year: "2026",
-    description: "Replace this text with a description of the lyric video.",
-    details: ["Replace with a project detail.", "Replace with another detail."]
-  },
-  {
-    title: "Your Project",
-    category: "music",
-    image: "assets/cover-silent-thug.png",
-    mediaType: "image",
-    mediaUrl: "",
-    year: "2026",
-    description: "Replace this text with a description of the project.",
-    details: ["Replace with a project detail.", "Replace with another detail."]
-  },
-  {
-    title: "Your Lyric Video",
-    category: "lyric-video",
-    image: "assets/video-2.jpg",
-    mediaType: "video",
-    mediaUrl: "",
-    year: "2026",
-    description: "Replace this text with a description of the lyric video.",
-    details: ["Replace with a project detail.", "Replace with another detail."]
-  }
-];
+/* Portfolio projects are managed through the admin dashboard (/admin).
+   This array is intentionally empty — add your projects there and they
+   will appear on the site automatically. */
+var PORTFOLIO_ITEMS = [];
 
 /* =====================================================================
    SERVICES (the four main services), "Enquire Now" opens the contact

@@ -638,6 +638,23 @@ ul { list-style: none; }
 }
 .portfolio-item__play svg { width: 16px; height: 16px; }
 
+.portfolio-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 24px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.portfolio-empty__eyebrow {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.6rem;
+  color: var(--accent-2);
+  margin-bottom: 8px;
+}
+.portfolio-empty__text { color: var(--muted); }
+
 /* =====================================================================
    SERVICES
    ===================================================================== */

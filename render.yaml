@@ -8,6 +8,8 @@ services:
     buildCommand: "npm install"
     startCommand: "node server.js"
     envVars:
+      - key: DATABASE_URL
+        sync: false          # Neon connection string (postgresql://...)
       - key: SMTP_USER
         sync: false          # jacksoonryder336@gmail.com
       - key: SMTP_PASS

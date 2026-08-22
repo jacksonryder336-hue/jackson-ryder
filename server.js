@@ -3,8 +3,7 @@
  * Serves the site, powers the contact/enquiry form (with Gmail delivery),
  * and provides the admin dashboard + API for managing content.
  *
- * - Public:   /api/content, /api/contact, /api/health
- * - Admin:    /admin  (dashboard) + /api/admin/* (authenticated)
+ * Database: PostgreSQL (Neon) via db.js — persistent across deploys.
  *
  * Email is sent via Nodemailer. Configure credentials via environment
  * variables (see .env.example).
@@ -17,7 +16,7 @@ const crypto = require("crypto");
 const express = require("express");
 const nodemailer = require("nodemailer");
 const multer = require("multer");
-const { db, getSettings } = require("./db");
+const { query, init, getSettings } = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,12 +32,12 @@ const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 /* =====================================================================
-   Auth (admin), HMAC-signed cookie token
+   Auth (admin) — HMAC-signed cookie token
    ===================================================================== */
 const SECRET = process.env.SECRET || crypto.randomBytes(32).toString("hex");
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "jackson2026";
-const TOKEN_TTL = 7 * 24 * 3600 * 1000; // 7 days
+const TOKEN_TTL = 7 * 24 * 3600 * 1000;
 
 const sign = (v) => crypto.createHmac("sha256", SECRET).update(v).digest("hex");
 function makeToken() {
@@ -71,7 +70,9 @@ function requireAdmin(req, res, next) {
 }
 
 /* =====================================================================
-   File uploads (multer), audio / video / images
+   File uploads (multer) — audio / video / images
+   NOTE: files land on the local disk. For permanent storage use image/video
+   URLs instead (stored in the database), or paste external links.
    ===================================================================== */
 const ALLOWED = /\.(mp3|wav|m4a|aac|flac|ogg|mp4|mov|webm|m4v|jpg|jpeg|png|gif|webp)$/i;
 const upload = multer({
@@ -82,7 +83,7 @@ const upload = multer({
       cb(null, Date.now() + "-" + Math.round(Math.random() * 1e9) + ext);
     },
   }),
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB (video)
+  limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ok = /^(image|audio|video)\//.test(file.mimetype) || ALLOWED.test(file.originalname);
     cb(null, ok);
@@ -179,14 +180,26 @@ const projPub = (r) => {
    ===================================================================== */
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "Jackson Ryder website" }));
 
-app.get("/api/content", (_req, res) => {
-  res.json({
-    songs: db.prepare("SELECT * FROM songs ORDER BY id").all().map(songPub),
-    videos: db.prepare("SELECT * FROM videos ORDER BY id").all().map(videoPub),
-    songwriting: db.prepare("SELECT * FROM songwriting ORDER BY id").all().map(swPub),
-    projects: db.prepare("SELECT * FROM projects ORDER BY id").all().map(projPub),
-    settings: getSettings(),
-  });
+app.get("/api/content", async (_req, res) => {
+  try {
+    const [songs, videos, songwriting, projects, settings] = await Promise.all([
+      query("SELECT * FROM songs ORDER BY id"),
+      query("SELECT * FROM videos ORDER BY id"),
+      query("SELECT * FROM songwriting ORDER BY id"),
+      query("SELECT * FROM projects ORDER BY id DESC"),
+      getSettings(),
+    ]);
+    res.json({
+      songs: songs.map(songPub),
+      videos: videos.map(videoPub),
+      songwriting: songwriting.map(swPub),
+      projects: projects.map(projPub),
+      settings,
+    });
+  } catch (err) {
+    console.error("[content] error:", err.message);
+    res.status(500).json({ success: false, error: "Could not load content." });
+  }
 });
 
 app.post("/api/contact", async (req, res) => {
@@ -197,9 +210,15 @@ app.post("/api/contact", async (req, res) => {
   const { errors, values } = validateBody(req.body || {});
   if (errors.length) return res.status(400).json({ success: false, error: errors.join(" ") });
 
-  // Always store the enquiry in the database (admin dashboard).
-  db.prepare("INSERT INTO enquiries (name, email, phone, service, subject, message) VALUES (?,?,?,?,?,?)")
-    .run(values.name, values.email, values.phone, values.service, values.subject, values.message);
+  // Store the enquiry (persistent database).
+  try {
+    await query(
+      "INSERT INTO enquiries (name, email, phone, service, subject, message) VALUES ($1,$2,$3,$4,$5,$6)",
+      [values.name, values.email, values.phone, values.service, values.subject, values.message]
+    );
+  } catch (err) {
+    console.error("[contact] DB save failed:", err.message);
+  }
 
   const transporter = getTransporter();
   if (!transporter) {
@@ -284,140 +303,118 @@ app.get("/api/admin/check", (req, res) => {
 });
 
 /* =====================================================================
-   ADMIN, enquiries
+   ADMIN — enquiries
    ===================================================================== */
-app.get("/api/admin/enquiries", requireAdmin, (_req, res) => {
-  res.json(db.prepare("SELECT * FROM enquiries ORDER BY id DESC").all());
+app.get("/api/admin/enquiries", requireAdmin, async (_req, res) => {
+  const rows = await query("SELECT * FROM enquiries ORDER BY id DESC");
+  res.json(rows);
 });
-app.patch("/api/admin/enquiries/:id", requireAdmin, (req, res) => {
+app.patch("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
   const { status } = req.body || {};
-  const ok = ["new", "read"].includes(status);
-  if (!ok) return res.status(400).json({ success: false, error: "Invalid status" });
-  db.prepare("UPDATE enquiries SET status = ? WHERE id = ?").run(status, req.params.id);
+  if (!["new", "read"].includes(status)) return res.status(400).json({ success: false, error: "Invalid status" });
+  await query("UPDATE enquiries SET status = $1 WHERE id = $2", [status, req.params.id]);
   res.json({ success: true });
 });
-app.delete("/api/admin/enquiries/:id", requireAdmin, (req, res) => {
-  db.prepare("DELETE FROM enquiries WHERE id = ?").run(req.params.id);
+app.delete("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
+  await query("DELETE FROM enquiries WHERE id = $1", [req.params.id]);
   res.json({ success: true });
 });
 
 /* =====================================================================
-   ADMIN, CRUD helpers (generic)
+   ADMIN — CRUD (songs / videos / songwriting / projects)
    ===================================================================== */
-function crudRoutes(base, table, mapper) {
-  const list = db.prepare(`SELECT * FROM ${table} ORDER BY id DESC`);
-  const get = db.prepare(`SELECT * FROM ${table} WHERE id = ?`);
-  const del = db.prepare(`DELETE FROM ${table} WHERE id = ?`);
-
-  app.get(`/api/admin/${base}`, requireAdmin, (_req, res) => res.json(list.all()));
-  app.delete(`/api/admin/${base}/:id`, requireAdmin, (req, res) => {
-    del.run(req.params.id);
+function crudRoutes(base, table, fields) {
+  app.get(`/api/admin/${base}`, requireAdmin, async (_req, res) => {
+    const rows = await query(`SELECT * FROM ${table} ORDER BY id DESC`);
+    res.json(rows);
+  });
+  app.delete(`/api/admin/${base}/:id`, requireAdmin, async (req, res) => {
+    await query(`DELETE FROM ${table} WHERE id = $1`, [req.params.id]);
     res.json({ success: true });
   });
-  return { get, mapper };
-}
 
-function buildRow(table, body, fields) {
-  const row = {};
-  for (const f of fields) row[f] = body[f] !== undefined ? String(body[f] ?? "").trim() : "";
-  return row;
-}
-
-/* --- songs --- */
-{
-  const fields = ["title","artist","description","genre","release_date","cover","audio","youtube_id","spotify","apple_music","youtube","audiomack"];
-  crudRoutes("songs", "songs");
-  const insert = db.prepare(`INSERT INTO songs (${fields.join(",")}) VALUES (${fields.map(()=>"?").join(",")})`);
-  const update = db.prepare(`UPDATE songs SET ${fields.map((f)=>`${f}=?`).join(",")} WHERE id=?`);
-  app.post("/api/admin/songs", requireAdmin, (req, res) => {
-    const r = buildRow("songs", req.body || {}, fields);
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    const info = insert.run(...fields.map((f) => r[f]));
-    res.json({ success: true, id: info.lastInsertRowid });
-  });
-  app.put("/api/admin/songs/:id", requireAdmin, (req, res) => {
-    const r = buildRow("songs", req.body || {}, fields);
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    update.run(...fields.map((f) => r[f]), req.params.id);
-    res.json({ success: true });
-  });
-}
-
-/* --- videos --- */
-{
-  const fields = ["title","song_title","description","release_date","thumbnail","video_url"];
-  crudRoutes("videos", "videos");
-  const insert = db.prepare(`INSERT INTO videos (${fields.join(",")}) VALUES (${fields.map(()=>"?").join(",")})`);
-  const update = db.prepare(`UPDATE videos SET ${fields.map((f)=>`${f}=?`).join(",")} WHERE id=?`);
-  app.post("/api/admin/videos", requireAdmin, (req, res) => {
-    const r = buildRow("videos", req.body || {}, fields);
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    const info = insert.run(...fields.map((f) => r[f]));
-    res.json({ success: true, id: info.lastInsertRowid });
-  });
-  app.put("/api/admin/videos/:id", requireAdmin, (req, res) => {
-    const r = buildRow("videos", req.body || {}, fields);
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    update.run(...fields.map((f) => r[f]), req.params.id);
-    res.json({ success: true });
-  });
-}
-
-/* --- songwriting --- */
-{
-  const fields = ["title","genre","description","lyrics_excerpt","audio"];
-  crudRoutes("songwriting", "songwriting");
-  const insert = db.prepare(`INSERT INTO songwriting (${fields.join(",")}) VALUES (${fields.map(()=>"?").join(",")})`);
-  const update = db.prepare(`UPDATE songwriting SET ${fields.map((f)=>`${f}=?`).join(",")} WHERE id=?`);
-  app.post("/api/admin/songwriting", requireAdmin, (req, res) => {
-    const r = buildRow("songwriting", req.body || {}, fields);
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    const info = insert.run(...fields.map((f) => r[f]));
-    res.json({ success: true, id: info.lastInsertRowid });
-  });
-  app.put("/api/admin/songwriting/:id", requireAdmin, (req, res) => {
-    const r = buildRow("songwriting", req.body || {}, fields);
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    update.run(...fields.map((f) => r[f]), req.params.id);
-    res.json({ success: true });
-  });
-}
-
-/* --- projects --- */
-{
-  const fields = ["title","category","description","image","media_type","media_url","year","details"];
-  crudRoutes("projects", "projects");
-  const insert = db.prepare(`INSERT INTO projects (${fields.join(",")}) VALUES (${fields.map(()=>"?").join(",")})`);
-  const update = db.prepare(`UPDATE projects SET ${fields.map((f)=>`${f}=?`).join(",")} WHERE id=?`);
-  const buildProject = (body) => {
-    const r = buildRow("projects", body || {}, fields);
-    const details = body.details;
-    r.details = Array.isArray(details) ? JSON.stringify(details.map(String)) : (details ? JSON.stringify(String(details).split("\n").map((s)=>s.trim()).filter(Boolean)) : "[]");
-    if (!["music","songwriting","production","lyric-video"].includes(r.category)) r.category = "music";
-    r.media_type = r.media_type === "video" ? "video" : "image";
-    return r;
+  const buildInsert = (r) => {
+    const vals = fields.map((f) => r[f]);
+    const placeholders = fields.map((_, i) => `$${i + 1}`).join(",");
+    return {
+      sql: `INSERT INTO ${table} (${fields.join(",")}) VALUES (${placeholders}) RETURNING id`,
+      params: vals,
+    };
   };
-  app.post("/api/admin/projects", requireAdmin, (req, res) => {
-    const r = buildProject(req.body || {});
+  const buildUpdate = (r, id) => {
+    const setClause = fields.map((f, i) => `${f}=$${i + 1}`).join(",");
+    return {
+      sql: `UPDATE ${table} SET ${setClause} WHERE id=$${fields.length + 1}`,
+      params: [...fields.map((f) => r[f]), id],
+    };
+  };
+
+  app.post(`/api/admin/${base}`, requireAdmin, async (req, res) => {
+    const r = {};
+    for (const f of fields) r[f] = req.body[f] !== undefined ? String(req.body[f] ?? "").trim() : "";
     if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    const info = insert.run(...fields.map((f) => r[f]));
-    res.json({ success: true, id: info.lastInsertRowid });
+    const { sql, params } = buildInsert(r);
+    const rows = await query(sql, params);
+    res.json({ success: true, id: rows[0].id });
   });
-  app.put("/api/admin/projects/:id", requireAdmin, (req, res) => {
-    const r = buildProject(req.body || {});
+  app.put(`/api/admin/${base}/:id`, requireAdmin, async (req, res) => {
+    const r = {};
+    for (const f of fields) r[f] = req.body[f] !== undefined ? String(req.body[f] ?? "").trim() : "";
     if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
-    update.run(...fields.map((f) => r[f]), req.params.id);
+    const { sql, params } = buildUpdate(r, req.params.id);
+    await query(sql, params);
     res.json({ success: true });
   });
 }
 
-/* --- settings --- */
-app.get("/api/admin/settings", requireAdmin, (_req, res) => res.json(getSettings()));
-app.put("/api/admin/settings", requireAdmin, (req, res) => {
-  const set = db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)");
+crudRoutes("songs", "songs", ["title","artist","description","genre","release_date","cover","audio","youtube_id","spotify","apple_music","youtube","audiomack"]);
+crudRoutes("videos", "videos", ["title","song_title","description","release_date","thumbnail","video_url"]);
+crudRoutes("songwriting", "songwriting", ["title","genre","description","lyrics_excerpt","audio"]);
+
+/* Projects need special normalization (category / media_type / details),
+   so they get their own handlers instead of the generic crudRoutes. */
+const projFields = ["title","category","description","image","media_type","media_url","year","details"];
+app.get("/api/admin/projects", requireAdmin, async (_req, res) => {
+  res.json(await query("SELECT * FROM projects ORDER BY id DESC"));
+});
+app.delete("/api/admin/projects/:id", requireAdmin, async (req, res) => {
+  await query("DELETE FROM projects WHERE id = $1", [req.params.id]);
+  res.json({ success: true });
+});
+app.post("/api/admin/projects", requireAdmin, async (req, res) => {
+  const r = {};
+  for (const f of projFields) r[f] = req.body[f] !== undefined ? String(req.body[f] ?? "").trim() : "";
+  if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
+  if (!["music","songwriting","production","lyric-video"].includes(r.category)) r.category = "music";
+  r.media_type = r.media_type === "video" ? "video" : "image";
+  const details = req.body.details;
+  r.details = Array.isArray(details) ? JSON.stringify(details.map(String)) : (details ? JSON.stringify(String(details).split("\n").map((s) => s.trim()).filter(Boolean)) : "[]");
+  const vals = projFields.map((f) => r[f]);
+  const ph = projFields.map((_, i) => `$${i + 1}`).join(",");
+  const rows = await query(`INSERT INTO projects (${projFields.join(",")}) VALUES (${ph}) RETURNING id`, vals);
+  res.json({ success: true, id: rows[0].id });
+});
+app.put("/api/admin/projects/:id", requireAdmin, async (req, res) => {
+  const r = {};
+  for (const f of projFields) r[f] = req.body[f] !== undefined ? String(req.body[f] ?? "").trim() : "";
+  if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
+  if (!["music","songwriting","production","lyric-video"].includes(r.category)) r.category = "music";
+  r.media_type = r.media_type === "video" ? "video" : "image";
+  const details = req.body.details;
+  r.details = Array.isArray(details) ? JSON.stringify(details.map(String)) : (details ? JSON.stringify(String(details).split("\n").map((s) => s.trim()).filter(Boolean)) : "[]");
+  const setClause = projFields.map((f, i) => `${f}=$${i + 1}`).join(",");
+  await query(`UPDATE projects SET ${setClause} WHERE id=$${projFields.length + 1}`, [...projFields.map((f) => r[f]), req.params.id]);
+  res.json({ success: true });
+});
+
+/* =====================================================================
+   ADMIN — settings
+   ===================================================================== */
+app.get("/api/admin/settings", requireAdmin, async (_req, res) => res.json(await getSettings()));
+app.put("/api/admin/settings", requireAdmin, async (req, res) => {
   const { about, social } = req.body || {};
-  if (about) set.run("about", JSON.stringify(about));
-  if (social) set.run("social", JSON.stringify(social));
+  if (about) await query("INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", ["about", JSON.stringify(about)]);
+  if (social) await query("INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", ["social", JSON.stringify(social)]);
   res.json({ success: true });
 });
 
@@ -434,7 +431,17 @@ app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "ad
 
 app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-app.listen(PORT, () => {
-  console.log(`Jackson Ryder website running on http://localhost:${PORT}`);
-  console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
-});
+/* =====================================================================
+   Start
+   ===================================================================== */
+init()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Jackson Ryder website running on http://localhost:${PORT}`);
+      console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
+    });
+  })
+  .catch((err) => {
+    console.error("[db] Failed to initialise database:", err.message);
+    process.exit(1);
+  });
