@@ -1,5 +1,5 @@
 /**
- * Jackson Ryder — Database layer (SQLite via better-sqlite3)
+ * Jackson Ryder, Database layer (SQLite via better-sqlite3)
  * Stores songs, lyric videos, songwriting projects, portfolio projects,
  * enquiries, and site settings. Seeded once with placeholder content.
  */
@@ -95,17 +95,17 @@ if (count === 0) {
   insSong.run({
     title: "Silent Thug", artist: "Jackson Ryder", genre: "Genre", release_date: "2026",
     cover: "assets/cover-silent-thug.jpg",
-    description: "Replace this text with a short description of the song — the story behind it, the mood, and what inspired it.",
+    description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it.",
   });
   insSong.run({
     title: "Your Song Title", artist: "Jackson Ryder", genre: "Genre", release_date: "2026",
     cover: "assets/cover-1.jpg",
-    description: "Replace this text with a short description of the song — the story behind it, the mood, and what inspired it.",
+    description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it.",
   });
   insSong.run({
     title: "Your Song Title", artist: "Jackson Ryder", genre: "Genre", release_date: "2026",
     cover: "assets/cover-2.jpg",
-    description: "Replace this text with a short description of the song — the story behind it, the mood, and what inspired it.",
+    description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it.",
   });
 
   const insVideo = db.prepare(`
@@ -155,7 +155,7 @@ if (count === 0) {
     heading: "The Artist Behind the Music",
     intro: "Jackson Ryder is a singer, songwriter, music producer and lyric video creator crafting music that speaks and stories that stay.",
     bio: [
-      "Replace this paragraph with your biography — who you are, where you come from, and what drives you as an artist.",
+      "Replace this paragraph with your biography, who you are, where you come from, and what drives you as an artist.",
       "Replace this paragraph with your musical background and creative journey.",
     ],
     points: [
@@ -171,6 +171,50 @@ if (count === 0) {
 
   console.log("[db] Seeded placeholder content.");
 }
+
+/* ------------------- migration: strip em-dash (—) ------------------- */
+/* Runs on every startup. Idempotent: once the dash is gone, re-running
+   does nothing. Cleans data that was seeded before the dash was removed. */
+function migrateStripDash() {
+  const cleanText = (value) => {
+    if (typeof value !== "string") return value;
+    return value.replace(/—\s*/g, ", ").replace(/\s*,\s*,/g, ",").replace(/,\s*$/g, "").trim();
+  };
+
+  const tables = {
+    songs: ["description"],
+    videos: ["description"],
+    songwriting: ["description", "lyrics_excerpt"],
+    projects: ["description"],
+  };
+  for (const [table, cols] of Object.entries(tables)) {
+    const rows = db.prepare(`SELECT id, ${cols.join(",")} FROM ${table}`).all();
+    const stmt = db.prepare(`UPDATE ${table} SET ${cols.map((c) => `${c}=?`).join(",")} WHERE id=?`);
+    for (const r of rows) {
+      stmt.run(...cols.map((c) => cleanText(r[c])), r.id);
+    }
+  }
+  // settings (about bio/points stored as JSON)
+  const aboutRow = db.prepare("SELECT value FROM settings WHERE key='about'").get();
+  if (aboutRow) {
+    try {
+      const about = JSON.parse(aboutRow.value);
+      let changed = false;
+      if (Array.isArray(about.bio)) {
+        about.bio = about.bio.map((b) => { const n = cleanText(b); if (n !== b) changed = true; return n; });
+      }
+      if (Array.isArray(about.points)) {
+        about.points = about.points.map((p) => {
+          const n = { ...p, text: cleanText(p.text) };
+          if (n.text !== p.text) changed = true;
+          return n;
+        });
+      }
+      if (changed) db.prepare("UPDATE settings SET value=? WHERE key='about'").run(JSON.stringify(about));
+    } catch { /* ignore malformed json */ }
+  }
+}
+migrateStripDash();
 
 /* ----------------------------- helpers ----------------------------- */
 function getSettings() {

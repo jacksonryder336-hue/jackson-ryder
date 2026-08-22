@@ -1,5 +1,5 @@
 /**
- * Jackson Ryder — Website server
+ * Jackson Ryder, Website server
  * Serves the site, powers the contact/enquiry form (with Gmail delivery),
  * and provides the admin dashboard + API for managing content.
  *
@@ -33,7 +33,7 @@ const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 /* =====================================================================
-   Auth (admin) — HMAC-signed cookie token
+   Auth (admin), HMAC-signed cookie token
    ===================================================================== */
 const SECRET = process.env.SECRET || crypto.randomBytes(32).toString("hex");
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
@@ -71,7 +71,7 @@ function requireAdmin(req, res, next) {
 }
 
 /* =====================================================================
-   File uploads (multer) — audio / video / images
+   File uploads (multer), audio / video / images
    ===================================================================== */
 const ALLOWED = /\.(mp3|wav|m4a|aac|flac|ogg|mp4|mov|webm|m4v|jpg|jpeg|png|gif|webp)$/i;
 const upload = multer({
@@ -224,7 +224,7 @@ app.post("/api/contact", async (req, res) => {
       <table style="width:100%;border-collapse:collapse;font-size:14px">
         <tr><td style="padding:8px 0;color:#9a9a9a;width:130px">Visitor Name</td><td style="padding:8px 0;font-weight:bold">${esc(values.name)}</td></tr>
         <tr><td style="padding:8px 0;color:#9a9a9a">Email</td><td style="padding:8px 0"><a href="mailto:${esc(values.email)}" style="color:#d4a24e">${esc(values.email)}</a></td></tr>
-        <tr><td style="padding:8px 0;color:#9a9a9a">Phone</td><td style="padding:8px 0">${esc(values.phone || "—")}</td></tr>
+        <tr><td style="padding:8px 0;color:#9a9a9a">Phone</td><td style="padding:8px 0">${esc(values.phone || "")}</td></tr>
         <tr><td style="padding:8px 0;color:#9a9a9a">Service</td><td style="padding:8px 0;font-weight:bold">${esc(values.service)}</td></tr>
         <tr><td style="padding:8px 0;color:#9a9a9a">Subject</td><td style="padding:8px 0">${esc(values.subject)}</td></tr>
         <tr><td style="padding:8px 0;color:#9a9a9a">Submitted</td><td style="padding:8px 0">${esc(submittedAt)}</td></tr>
@@ -241,7 +241,7 @@ app.post("/api/contact", async (req, res) => {
     "--------------------------------------",
     `Visitor Name : ${values.name}`,
     `Email        : ${values.email}`,
-    `Phone        : ${values.phone || "—"}`,
+    `Phone        : ${values.phone || ""}`,
     `Service      : ${values.service}`,
     `Subject      : ${values.subject}`,
     `Submitted    : ${submittedAt}`,
@@ -284,7 +284,7 @@ app.get("/api/admin/check", (req, res) => {
 });
 
 /* =====================================================================
-   ADMIN — enquiries
+   ADMIN, enquiries
    ===================================================================== */
 app.get("/api/admin/enquiries", requireAdmin, (_req, res) => {
   res.json(db.prepare("SELECT * FROM enquiries ORDER BY id DESC").all());
@@ -302,7 +302,7 @@ app.delete("/api/admin/enquiries/:id", requireAdmin, (req, res) => {
 });
 
 /* =====================================================================
-   ADMIN — CRUD helpers (generic)
+   ADMIN, CRUD helpers (generic)
    ===================================================================== */
 function crudRoutes(base, table, mapper) {
   const list = db.prepare(`SELECT * FROM ${table} ORDER BY id DESC`);
