@@ -655,6 +655,24 @@ ul { list-style: none; }
 }
 .portfolio-empty__text { color: var(--muted); }
 
+/* Generic empty-state (songs / videos / songwriting when empty) */
+.section-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 50px 24px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.section-empty__eyebrow {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--accent-2);
+  margin-bottom: 6px;
+}
+.section-empty__text { color: var(--muted); }
+
 /* =====================================================================
    SERVICES
    ===================================================================== */

@@ -119,6 +119,10 @@ function renderAbout() {
    --------------------------------------------------------------------- */
 function renderMusic() {
   const grid = $("#musicGrid");
+  if (!SONGS.length) {
+    grid.innerHTML = `<div class="section-empty"><p class="section-empty__eyebrow">New Music Coming Soon</p><p class="section-empty__text">Songs will appear here as they are released.</p></div>`;
+    return;
+  }
   grid.innerHTML = SONGS.map((song, i) => {
     const player = isReal(song.audioUrl)
       ? `<audio class="audio-player" controls preload="none" src="${escapeHtml(song.audioUrl)}"></audio>`
@@ -179,6 +183,10 @@ function renderMusic() {
    RENDER: Songwriting
    --------------------------------------------------------------------- */
 function renderSongwriting() {
+  if (!SONGWRITING_PROJECTS.length) {
+    $("#songwritingGrid").innerHTML = `<div class="section-empty"><p class="section-empty__eyebrow">Songwriting</p><p class="section-empty__text">Songwriting projects will appear here.</p></div>`;
+    return;
+  }
   $("#songwritingGrid").innerHTML = SONGWRITING_PROJECTS.map(
     (p) => `
     <article class="song-card reveal">
@@ -209,6 +217,10 @@ function renderProduction() {
    RENDER: Lyric videos
    --------------------------------------------------------------------- */
 function renderLyricVideos() {
+  if (!LYRIC_VIDEOS.length) {
+    $("#lyricVideosGrid").innerHTML = `<div class="section-empty"><p class="section-empty__eyebrow">Lyric Videos</p><p class="section-empty__text">Lyric videos will appear here as they are released.</p></div>`;
+    return;
+  }
   $("#lyricVideosGrid").innerHTML = LYRIC_VIDEOS.map((v) => {
     const hasVideo = isReal(v.videoUrl);
     return `

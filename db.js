@@ -107,9 +107,10 @@ async function init() {
     );
   `);
 
-  // Seed only if the database is empty (songs table has no rows).
-  const count = (await query("SELECT COUNT(*)::int AS c FROM songs"))[0].c;
-  if (count === 0) {
+  // Seed ONLY once (controlled by the "seeded" marker). This ensures that
+  // after Jackson clears his content, the placeholder content never returns.
+  const seeded = (await query("SELECT value FROM settings WHERE key='seeded'"))[0];
+  if (!seeded) {
     const songs = [
       { title: "Silent Thug", artist: "Jackson Ryder", genre: "Genre", release_date: "2026", cover: "assets/cover-silent-thug.jpg", description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it." },
       { title: "Your Song Title", artist: "Jackson Ryder", genre: "Genre", release_date: "2026", cover: "assets/cover-1.jpg", description: "Replace this text with a short description of the song, the story behind it, the mood, and what inspired it." },
@@ -162,7 +163,10 @@ async function init() {
     });
     await query("INSERT INTO settings (key, value) VALUES ($1,$2), ($3,$4)", ["about", setAbout, "social", setSocial]);
 
-    console.log("[db] Seeded placeholder content.");
+    // Mark seeded so this never runs again.
+    await query("INSERT INTO settings (key, value) VALUES ('seeded','1') ON CONFLICT (key) DO UPDATE SET value='1'");
+
+    console.log("[db] Seeded placeholder content (first run only).");
   }
 }
 
