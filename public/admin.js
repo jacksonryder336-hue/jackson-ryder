@@ -2,6 +2,7 @@
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const isImageSource = (v) => /^data:image\//i.test(v || "") || /\.(jpg|jpeg|png|gif|webp)(?:[?#].*)?$/i.test(v || "");
 
 /* ---------------- API ---------------- */
 async function api(url, opts = {}) {
@@ -49,7 +50,8 @@ function showApp(show) {
 let currentView = "dashboard";
 const VIEW_TITLES = {
   dashboard: "Dashboard", songs: "Songs / Music", videos: "Lyric Videos",
-  songwriting: "Songwriting", projects: "Portfolio", enquiries: "Enquiries", settings: "Settings",
+  songwriting: "Songwriting", projects: "Portfolio", testimonials: "Testimonials",
+  enquiries: "Enquiries", settings: "Settings",
 };
 
 function loadView(view) {
@@ -64,6 +66,7 @@ function loadView(view) {
   else if (view === "videos") renderVideos(c);
   else if (view === "songwriting") renderSongwriting(c);
   else if (view === "projects") renderProjects(c);
+  else if (view === "testimonials") renderTestimonials(c);
   else if (view === "enquiries") renderEnquiries(c);
   else if (view === "settings") renderSettings(c);
 }
@@ -93,7 +96,7 @@ function fileField(label, name, value, accept) {
       <span class="file-pick__name" data-filename="${name}"></span>
     </div>
     <div class="url-preview" data-urlpreview="${name}">${value ? "✓ " + esc(value) : ""}</div>
-    <img class="preview-img" data-preview="${name}" ${value && /\.(jpg|jpeg|png|gif|webp)$/i.test(value) ? `src="${esc(value)}"` : ""} ${value && /\.(jpg|jpeg|png|gif|webp)$/i.test(value) ? "" : "hidden"} />
+    <img class="preview-img" data-preview="${name}" ${isImageSource(value) ? `src="${esc(value)}"` : ""} ${isImageSource(value) ? "" : "hidden"} />
   </div>`;
 }
 
@@ -118,7 +121,7 @@ function wireUploads(root) {
         urlInput.value = data.url;
         $(`[data-urlpreview="${name}"]`, root).textContent = "✓ " + data.url;
         const img = $(`[data-preview="${name}"]`, root);
-        if (img && /\.(jpg|jpeg|png|gif|webp)$/i.test(data.url)) { img.src = data.url; img.hidden = false; }
+        if (img && isImageSource(data.url)) { img.src = data.url; img.hidden = false; }
         $(`[data-filename="${name}"]`, root).textContent = file.name;
         toast("File uploaded.");
       } catch (e) {
@@ -148,9 +151,9 @@ function closeModal() { $("#modal").hidden = true; }
    DASHBOARD
    ===================================================================== */
 async function renderDashboard(c) {
-  const [songs, videos, sw, projects, enq] = await Promise.all([
+  const [songs, videos, sw, projects, testimonials, enq] = await Promise.all([
     GET("/api/admin/songs"), GET("/api/admin/videos"), GET("/api/admin/songwriting"),
-    GET("/api/admin/projects"), GET("/api/admin/enquiries"),
+    GET("/api/admin/projects"), GET("/api/admin/testimonials"), GET("/api/admin/enquiries"),
   ]);
   const newEnq = enq.filter((e) => e.status === "new").length;
   c.innerHTML = `
@@ -159,6 +162,7 @@ async function renderDashboard(c) {
       <div class="stat"><div class="stat__num">${videos.length}</div><div class="stat__label">Lyric Videos</div></div>
       <div class="stat"><div class="stat__num">${sw.length}</div><div class="stat__label">Songwriting</div></div>
       <div class="stat"><div class="stat__num">${projects.length}</div><div class="stat__label">Projects</div></div>
+      <div class="stat"><div class="stat__num">${testimonials.length}</div><div class="stat__label">Testimonials</div></div>
       <div class="stat"><div class="stat__num">${enq.length}</div><div class="stat__label">Enquiries</div></div>
     </div>
     <div class="panel">
@@ -325,8 +329,28 @@ function projectForm(p = {}) {
     `;
 }
 
+/* ---------------- TESTIMONIALS ---------------- */
+async function renderTestimonials(c) {
+  const items = await GET("/api/admin/testimonials");
+  c.innerHTML = `
+    <div class="panel"><div class="panel__head"><h3>Testimonials (${items.length})</h3>
+      <button class="btn btn--primary" data-add>+ Add Testimonial</button></div>
+    <div class="panel__body">${items.map((t) => listRowHTML(t, t.image, "Testimonial Screenshot", "Click Edit to replace the image", t.id)).join("") || '<p style="color:var(--muted)">No testimonial screenshots yet. Click “Add Testimonial” to upload one.</p>'}</div></div>`;
+  $("[data-add]", c).addEventListener("click", () => openForm("testimonials"));
+  bindRowActions(c, "testimonials", () => renderTestimonials(c));
+}
+
+function testimonialForm(t = {}) {
+  return `
+    ${fileField("Testimonial Screenshot *", "image", t.image, "image/*")}
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:-4px">Upload a clear JPG, PNG, or WebP screenshot. Visitors can click it to view the full-size image.</p>`;
+}
+
 /* ---------------- OPEN FORM / SAVE ---------------- */
-const FORM_BUILDERS = { songs: songForm, videos: videoForm, songwriting: songwritingForm, projects: projectForm };
+const FORM_BUILDERS = {
+  songs: songForm, videos: videoForm, songwriting: songwritingForm,
+  projects: projectForm, testimonials: testimonialForm,
+};
 
 async function openForm(key, id) {
   let data = {};
