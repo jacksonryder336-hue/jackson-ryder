@@ -230,22 +230,8 @@ var SERVICES = [
 ];
 
 /* =====================================================================
-   TESTIMONIALS (replace with real words from clients & collaborators)
+   TESTIMONIALS
+   Managed through the admin dashboard. Upload, replace, or delete testimonial
+   screenshots there and they will appear on the website automatically.
    ===================================================================== */
-var TESTIMONIALS = [
-  {
-    quote: "Replace this with a real testimonial from a client, collaborator or fan.",
-    name: "Client Name",
-    role: "Artist"
-  },
-  {
-    quote: "Replace this with a real testimonial from a client, collaborator or fan.",
-    name: "Client Name",
-    role: "Producer"
-  },
-  {
-    quote: "Replace this with a real testimonial from a client, collaborator or fan.",
-    name: "Client Name",
-    role: "Singer"
-  }
-];
+var TESTIMONIALS = [];

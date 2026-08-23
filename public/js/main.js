@@ -125,7 +125,7 @@ function renderMusic() {
   }
   grid.innerHTML = SONGS.map((song, i) => {
     const player = isReal(song.audioUrl)
-      ? `<audio class="audio-player" controls preload="none" src="${escapeHtml(song.audioUrl)}"></audio>`
+      ? `<audio class="audio-player" controls controlsList="nodownload noplaybackrate" disablePictureInPicture preload="none" src="${escapeHtml(song.audioUrl)}" oncontextmenu="return false"></audio>`
       : `<div class="audio-placeholder">♪ Add an .mp3 link to enable the player</div>`;
 
     const platformLinks = [
@@ -297,13 +297,17 @@ function renderServices() {
    RENDER: Testimonials
    --------------------------------------------------------------------- */
 function renderTestimonials() {
-  $("#testimonialsGrid").innerHTML = TESTIMONIALS.map(
-    (t) => `
-    <article class="testimonial-card reveal">
-      <p class="testimonial-card__quote">&ldquo;${escapeHtml(t.quote)}&rdquo;</p>
-      <p class="testimonial-card__name">${escapeHtml(t.name)}</p>
-      <p class="testimonial-card__role">${escapeHtml(t.role)}</p>
-    </article>`
+  const grid = $("#testimonialsGrid");
+  if (!TESTIMONIALS.length) {
+    grid.innerHTML = `<div class="section-empty"><p class="section-empty__eyebrow">Testimonials</p><p class="section-empty__text">Client testimonials will appear here soon.</p></div>`;
+    return;
+  }
+  grid.innerHTML = TESTIMONIALS.map(
+    (t, i) => `
+    <button type="button" class="testimonial-card testimonial-card--image reveal" data-testimonial="${i}" aria-label="Open testimonial screenshot ${i + 1}">
+      <img class="testimonial-card__image" src="${escapeHtml(t.image)}" alt="Client testimonial screenshot ${i + 1}" loading="lazy" />
+      <span class="testimonial-card__zoom">Click to enlarge</span>
+    </button>`
   ).join("");
 }
 
@@ -438,6 +442,19 @@ function initModals() {
                 .join("")}</ul></div>`
             : ""
         }
+      </div>`;
+    open(projectModal);
+  });
+
+  // testimonial screenshot modal
+  document.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-testimonial]");
+    if (!item) return;
+    const t = TESTIMONIALS[Number(item.getAttribute("data-testimonial"))];
+    if (!t || !isReal(t.image)) return;
+    projectBody.innerHTML = `
+      <div class="modal__project__media testimonial-modal__media">
+        <img src="${escapeHtml(t.image)}" alt="Client testimonial screenshot" />
       </div>`;
     open(projectModal);
   });
@@ -608,6 +625,21 @@ function initContactForm() {
 }
 
 /* ---------------------------------------------------------------------
+   AUDIO DOWNLOAD DETERRENCE
+   Browsers must receive audio data to play it, so no website can make a
+   public track impossible to capture. These controls remove ordinary
+   download options, right-click saving, and dragging from the player.
+   --------------------------------------------------------------------- */
+function initAudioProtection() {
+  $$("audio.audio-player").forEach((audio) => {
+    audio.setAttribute("controlsList", "nodownload noplaybackrate");
+    audio.setAttribute("disablePictureInPicture", "");
+    audio.addEventListener("contextmenu", (e) => e.preventDefault());
+    audio.addEventListener("dragstart", (e) => e.preventDefault());
+  });
+}
+
+/* ---------------------------------------------------------------------
    LOAD CONTENT FROM DATABASE (admin-managed), fall back to content.js
    --------------------------------------------------------------------- */
 async function loadContent() {
@@ -620,6 +652,7 @@ async function loadContent() {
     if (Array.isArray(data.videos) && data.videos.length) LYRIC_VIDEOS = data.videos;
     if (Array.isArray(data.songwriting) && data.songwriting.length) SONGWRITING_PROJECTS = data.songwriting;
     if (Array.isArray(data.projects)) PORTFOLIO_ITEMS = data.projects;
+    if (Array.isArray(data.testimonials)) TESTIMONIALS = data.testimonials;
 
     if (data.settings) {
       if (data.settings.social) {
@@ -652,6 +685,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderPortfolio();
   renderServices();
   renderTestimonials();
+  initAudioProtection();
   renderSocial($("#socialContact"));
   renderSocial($("#socialFooter"));
 
