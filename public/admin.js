@@ -216,7 +216,7 @@ async function renderSongs(c) {
   c.innerHTML = `
     <div class="panel"><div class="panel__head"><h3>All Songs (${items.length})</h3>
       <button class="btn btn--primary" data-add>+ Add Song</button></div>
-    <div class="panel__body">${items.map((s) => listRowHTML(s, s.cover, s.title, `${s.artist} · ${s.genre || ""}`)).join("") || '<p style="color:var(--muted)">No songs yet.</p>'}</div></div>`;
+    <div class="panel__body">${items.map((s) => listRowHTML(s, s.cover, s.title, `${s.artist} · ${s.genre || ""}`, s.id)).join("") || '<p style="color:var(--muted)">No songs yet.</p>'}</div></div>`;
   $("[data-add]", c).addEventListener("click", () => openForm("songs"));
   bindRowActions(c, "songs", () => renderSongs(c));
 }
@@ -251,7 +251,7 @@ async function renderVideos(c) {
   c.innerHTML = `
     <div class="panel"><div class="panel__head"><h3>Lyric Videos (${items.length})</h3>
       <button class="btn btn--primary" data-add>+ Add Video</button></div>
-    <div class="panel__body">${items.map((v) => listRowHTML(v, v.thumbnail, v.title, v.song_title)).join("") || '<p style="color:var(--muted)">No videos yet.</p>'}</div></div>`;
+    <div class="panel__body">${items.map((v) => listRowHTML(v, v.thumbnail, v.title, v.song_title, v.id)).join("") || '<p style="color:var(--muted)">No videos yet.</p>'}</div></div>`;
   $("[data-add]", c).addEventListener("click", () => openForm("videos"));
   bindRowActions(c, "videos", () => renderVideos(c));
 }
@@ -275,7 +275,7 @@ async function renderSongwriting(c) {
   c.innerHTML = `
     <div class="panel"><div class="panel__head"><h3>Songwriting Projects (${items.length})</h3>
       <button class="btn btn--primary" data-add>+ Add Project</button></div>
-    <div class="panel__body">${items.map((s) => listRowHTML(s, null, s.title, s.genre)).join("") || '<p style="color:var(--muted)">No projects yet.</p>'}</div></div>`;
+    <div class="panel__body">${items.map((s) => listRowHTML(s, null, s.title, s.genre, s.id)).join("") || '<p style="color:var(--muted)">No projects yet.</p>'}</div></div>`;
   $("[data-add]", c).addEventListener("click", () => openForm("songwriting"));
   bindRowActions(c, "songwriting", () => renderSongwriting(c));
 }
@@ -297,13 +297,18 @@ async function renderProjects(c) {
   c.innerHTML = `
     <div class="panel"><div class="panel__head"><h3>Portfolio Projects (${items.length})</h3>
       <button class="btn btn--primary" data-add>+ Add Project</button></div>
-    <div class="panel__body">${items.map((p) => listRowHTML(p, p.image, p.title, p.category)).join("") || '<p style="color:var(--muted)">No projects yet.</p>'}</div></div>`;
+    <div class="panel__body">${items.map((p) => listRowHTML(p, p.image, p.title, p.category, p.id)).join("") || '<p style="color:var(--muted)">No projects yet.</p>'}</div></div>`;
   $("[data-add]", c).addEventListener("click", () => openForm("projects"));
   bindRowActions(c, "projects", () => renderProjects(c));
 }
 
 function projectForm(p = {}) {
-  const details = (Array.isArray(p.details) ? p.details : []).join("\n");
+  let projectDetails = p.details;
+  if (typeof projectDetails === "string") {
+    try { projectDetails = JSON.parse(projectDetails); }
+    catch { projectDetails = projectDetails.split("\n").filter(Boolean); }
+  }
+  const details = (Array.isArray(projectDetails) ? projectDetails : []).join("\n");
   return `
     <div class="field-row">
       ${field("Title *", "title", p.title, { required: true })}
