@@ -89,6 +89,18 @@ async function init() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS testimonials (
+      id SERIAL PRIMARY KEY,
+      image TEXT DEFAULT '',
+      quote TEXT DEFAULT '',
+      name TEXT DEFAULT '',
+      role TEXT DEFAULT '',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    ALTER TABLE testimonials ADD COLUMN IF NOT EXISTS image TEXT DEFAULT '';
+    ALTER TABLE testimonials ALTER COLUMN quote SET DEFAULT '';
+
     CREATE TABLE IF NOT EXISTS enquiries (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,

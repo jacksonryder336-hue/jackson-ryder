@@ -24,8 +24,8 @@ const PORT = process.env.PORT || 3000;
 /* =====================================================================
    Setup
    ===================================================================== */
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+app.use(express.json({ limit: "12mb" }));
+app.use(express.urlencoded({ extended: false, limit: "12mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
@@ -190,11 +190,12 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, service: "Jackson Ryd
 
 app.get("/api/content", async (_req, res) => {
   try {
-    const [songs, videos, songwriting, projects, settings] = await Promise.all([
+    const [songs, videos, songwriting, projects, testimonials, settings] = await Promise.all([
       query("SELECT * FROM songs ORDER BY id"),
       query("SELECT * FROM videos ORDER BY id"),
       query("SELECT * FROM songwriting ORDER BY id"),
       query("SELECT * FROM projects ORDER BY id DESC"),
+      query("SELECT * FROM testimonials ORDER BY id DESC"),
       getSettings(),
     ]);
     res.json({
@@ -202,6 +203,7 @@ app.get("/api/content", async (_req, res) => {
       videos: videos.map(videoPub),
       songwriting: songwriting.map(swPub),
       projects: projects.map(projPub),
+      testimonials: testimonials.filter((r) => r.image).map((r) => ({ id: r.id, image: r.image })),
       settings,
     });
   } catch (err) {
@@ -331,7 +333,7 @@ app.delete("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
 /* =====================================================================
    ADMIN — CRUD (songs / videos / songwriting / projects)
    ===================================================================== */
-function crudRoutes(base, table, fields) {
+function crudRoutes(base, table, fields, requiredField = "title") {
   app.get(`/api/admin/${base}`, requireAdmin, async (_req, res) => {
     const rows = await query(`SELECT * FROM ${table} ORDER BY id DESC`);
     res.json(rows);
@@ -360,7 +362,7 @@ function crudRoutes(base, table, fields) {
   app.post(`/api/admin/${base}`, requireAdmin, async (req, res) => {
     const r = {};
     for (const f of fields) r[f] = req.body[f] !== undefined ? String(req.body[f] ?? "").trim() : "";
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
+    if (!r[requiredField]) return res.status(400).json({ success: false, error: `${requiredField === "image" ? "Screenshot" : "Title"} is required.` });
     const { sql, params } = buildInsert(r);
     const rows = await query(sql, params);
     res.json({ success: true, id: rows[0].id });
@@ -368,7 +370,7 @@ function crudRoutes(base, table, fields) {
   app.put(`/api/admin/${base}/:id`, requireAdmin, async (req, res) => {
     const r = {};
     for (const f of fields) r[f] = req.body[f] !== undefined ? String(req.body[f] ?? "").trim() : "";
-    if (!r.title) return res.status(400).json({ success: false, error: "Title is required." });
+    if (!r[requiredField]) return res.status(400).json({ success: false, error: `${requiredField === "image" ? "Screenshot" : "Title"} is required.` });
     const { sql, params } = buildUpdate(r, req.params.id);
     await query(sql, params);
     res.json({ success: true });
@@ -378,6 +380,7 @@ function crudRoutes(base, table, fields) {
 crudRoutes("songs", "songs", ["title","artist","description","genre","release_date","cover","audio","youtube_id","spotify","apple_music","youtube","audiomack"]);
 crudRoutes("videos", "videos", ["title","song_title","description","release_date","thumbnail","video_url"]);
 crudRoutes("songwriting", "songwriting", ["title","genre","description","lyrics_excerpt","audio"]);
+crudRoutes("testimonials", "testimonials", ["image"], "image");
 
 /* Projects need special normalization (category / media_type / details),
    so they get their own handlers instead of the generic crudRoutes. */
@@ -429,6 +432,25 @@ app.put("/api/admin/settings", requireAdmin, async (req, res) => {
 /* --- upload --- */
 app.post("/api/admin/upload", requireAdmin, upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded." });
+
+  // Store uploaded images as data URLs in PostgreSQL when the form is saved.
+  // This keeps testimonial screenshots and artwork persistent on Render,
+  // whose local upload filesystem is temporary across restarts/deploys.
+  if (req.file.mimetype.startsWith("image/")) {
+    if (req.file.size > 8 * 1024 * 1024) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, error: "Images must be smaller than 8 MB." });
+    }
+    try {
+      const data = fs.readFileSync(req.file.path).toString("base64");
+      fs.unlinkSync(req.file.path);
+      return res.json({ success: true, url: `data:${req.file.mimetype};base64,${data}` });
+    } catch (err) {
+      console.error("[upload] image processing failed:", err.message);
+      return res.status(500).json({ success: false, error: "Could not process the image." });
+    }
+  }
+
   res.json({ success: true, url: "/uploads/" + req.file.filename });
 });
 
