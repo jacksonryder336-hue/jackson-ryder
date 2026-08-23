@@ -552,10 +552,12 @@ function initContactForm() {
       return;
     }
 
+    const phoneNumber = $("#phone").value.trim();
+    const countryCode = $("#countryCode").value;
     const payload = {
       name: $("#name").value.trim(),
       email: $("#email").value.trim(),
-      phone: $("#phone").value.trim(),
+      phone: phoneNumber ? `${countryCode} ${phoneNumber.replace(/^\+/, "").trim()}` : "",
       service: $("#service").value,
       subject: $("#subject").value.trim(),
       message: $("#message").value.trim(),
@@ -566,6 +568,7 @@ function initContactForm() {
     btnLabel.textContent = "Sending...";
     setNote("");
 
+    let sent = false;
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -575,6 +578,8 @@ function initContactForm() {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.success) {
+        sent = true;
+        btnLabel.textContent = "Sent ✓";
         setNote(
           "Thank you for reaching out to Jackson Ryder. Your enquiry has been received successfully. I will get back to you as soon as possible.",
           "success"
@@ -589,8 +594,15 @@ function initContactForm() {
     } catch (err) {
       setNote("Network error, please check your connection and try again.", "error");
     } finally {
-      submitBtn.disabled = false;
-      btnLabel.textContent = "Send Enquiry";
+      if (sent) {
+        setTimeout(() => {
+          submitBtn.disabled = false;
+          btnLabel.textContent = "Send Enquiry";
+        }, 3000);
+      } else {
+        submitBtn.disabled = false;
+        btnLabel.textContent = "Send Enquiry";
+      }
     }
   });
 }
