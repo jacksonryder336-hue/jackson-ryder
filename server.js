@@ -113,6 +113,9 @@ function getTransporter() {
     return nodemailer.createTransport({
       host: "smtp.resend.com", port: 465, secure: true,
       auth: { user: "resend", pass: process.env.RESEND_API_KEY },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
     });
   }
   const host = process.env.SMTP_HOST || "smtp.gmail.com";
@@ -121,7 +124,12 @@ function getTransporter() {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   if (!user || !pass) return null;
-  return nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+  return nodemailer.createTransport({
+    host, port, secure, auth: { user, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+  });
 }
 
 const VALID_SERVICES = new Set(["Singing", "Songwriting", "Music Production", "Lyric Video", "Collaboration", "Other"]);
@@ -210,7 +218,8 @@ app.post("/api/contact", async (req, res) => {
   const { errors, values } = validateBody(req.body || {});
   if (errors.length) return res.status(400).json({ success: false, error: errors.join(" ") });
 
-  // Store the enquiry (persistent database).
+  // Store the enquiry first. Once it is safely in the admin dashboard we can
+  // acknowledge the visitor immediately; email delivery runs in the background.
   try {
     await query(
       "INSERT INTO enquiries (name, email, phone, service, subject, message) VALUES ($1,$2,$3,$4,$5,$6)",
@@ -218,16 +227,13 @@ app.post("/api/contact", async (req, res) => {
     );
   } catch (err) {
     console.error("[contact] DB save failed:", err.message);
+    return res.status(500).json({
+      success: false,
+      error: "We couldn't save your enquiry right now. Please try again.",
+    });
   }
 
   const transporter = getTransporter();
-  if (!transporter) {
-    console.error("[contact] Email not configured. Enquiry saved to database only.");
-    return res.status(500).json({
-      success: false,
-      error: "The enquiry system is not fully configured yet. Please contact the site owner.",
-    });
-  }
 
   const fromAddress = process.env.MAIL_FROM || (process.env.SMTP_USER || values.email);
   const toAddress = process.env.MAIL_TO || "jacksonryder336@gmail.com";
@@ -267,18 +273,20 @@ app.post("/api/contact", async (req, res) => {
     "", "Message", "--------------------------------------", values.message,
   ].join("\n");
 
-  try {
-    await transporter.sendMail({
+  // The enquiry is already saved, so do not keep the visitor waiting for an
+  // SMTP server. Send the notification as a best-effort background task.
+  if (transporter) {
+    transporter.sendMail({
       from: `"Jackson Ryder Website" <${fromAddress}>`,
       to: toAddress, replyTo: values.email,
       subject: "New Website Enquiry | Jackson Ryder",
       text: textBody, html: htmlBody,
-    });
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("[contact] Email failed:", err.message);
-    return res.status(502).json({ success: false, error: "We couldn't send your enquiry right now. Please try again in a moment." });
+    }).catch((err) => console.error("[contact] Email failed:", err.message));
+  } else {
+    console.error("[contact] Email not configured. Enquiry saved to database only.");
   }
+
+  return res.json({ success: true });
 });
 
 /* =====================================================================
