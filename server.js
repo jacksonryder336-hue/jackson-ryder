@@ -237,7 +237,7 @@ app.post("/api/contact", async (req, res) => {
 
   const fromAddress = process.env.MAIL_FROM || (process.env.SMTP_USER || values.email);
   const toAddress = process.env.MAIL_TO || "jacksonryder336@gmail.com";
-  const submittedAt = new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos", dateStyle: "full", timeStyle: "short" });
+  const submittedAt = new Date().toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "full", timeStyle: "short" });
 
   const htmlBody = `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;border:1px solid #1f1f1f;border-radius:12px;overflow:hidden">
