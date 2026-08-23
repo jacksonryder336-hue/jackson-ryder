@@ -188,6 +188,42 @@ const projPub = (r) => {
    ===================================================================== */
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "Jackson Ryder website" }));
 
+// Persistent media streaming from PostgreSQL. Range requests allow audio
+// players to seek without downloading the whole song again.
+app.get("/media/:id", async (req, res) => {
+  try {
+    const rows = await query("SELECT mime_type, original_name, data FROM media_files WHERE id = $1", [req.params.id]);
+    if (!rows.length) return res.status(404).send("Media not found");
+
+    const file = rows[0];
+    const data = file.data;
+    const total = data.length;
+    const range = req.headers.range;
+    res.setHeader("Content-Type", file.mime_type || "application/octet-stream");
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Content-Disposition", "inline");
+
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+      if (!match) return res.status(416).set("Content-Range", `bytes */${total}`).end();
+      const start = match[1] ? Number(match[1]) : 0;
+      const end = match[2] ? Math.min(Number(match[2]), total - 1) : total - 1;
+      if (start > end || start >= total) return res.status(416).set("Content-Range", `bytes */${total}`).end();
+      res.status(206);
+      res.setHeader("Content-Range", `bytes ${start}-${end}/${total}`);
+      res.setHeader("Content-Length", end - start + 1);
+      return res.end(data.subarray(start, end + 1));
+    }
+
+    res.setHeader("Content-Length", total);
+    return res.end(data);
+  } catch (err) {
+    console.error("[media] error:", err.message);
+    return res.status(500).send("Could not load media");
+  }
+});
+
 app.get("/api/content", async (_req, res) => {
   try {
     const [songs, videos, songwriting, projects, testimonials, settings] = await Promise.all([
@@ -430,24 +466,44 @@ app.put("/api/admin/settings", requireAdmin, async (req, res) => {
 });
 
 /* --- upload --- */
-app.post("/api/admin/upload", requireAdmin, upload.single("file"), (req, res) => {
+app.post("/api/admin/upload", requireAdmin, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded." });
 
-  // Store uploaded images as data URLs in PostgreSQL when the form is saved.
-  // This keeps testimonial screenshots and artwork persistent on Render,
-  // whose local upload filesystem is temporary across restarts/deploys.
-  if (req.file.mimetype.startsWith("image/")) {
-    if (req.file.size > 8 * 1024 * 1024) {
+  // Render's local filesystem is temporary. Store images and audio in
+  // PostgreSQL so songs, artwork, and testimonial screenshots survive deploys.
+  const isImage = req.file.mimetype.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(req.file.originalname);
+  const isAudio = req.file.mimetype.startsWith("audio/") || /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(req.file.originalname);
+  if (isImage || isAudio) {
+    const maxBytes = isImage ? 8 * 1024 * 1024 : 20 * 1024 * 1024;
+    if (req.file.size > maxBytes) {
       fs.unlink(req.file.path, () => {});
-      return res.status(400).json({ success: false, error: "Images must be smaller than 8 MB." });
+      return res.status(400).json({
+        success: false,
+        error: `${isImage ? "Images must be smaller than 8 MB" : "Audio files must be smaller than 20 MB"}.`,
+      });
     }
     try {
-      const data = fs.readFileSync(req.file.path).toString("base64");
+      const data = fs.readFileSync(req.file.path);
       fs.unlinkSync(req.file.path);
-      return res.json({ success: true, url: `data:${req.file.mimetype};base64,${data}` });
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const fallbackMimes = {
+        ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+        ".aac": "audio/aac", ".flac": "audio/flac", ".ogg": "audio/ogg",
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+        ".gif": "image/gif", ".webp": "image/webp",
+      };
+      const mimeType = req.file.mimetype === "application/octet-stream"
+        ? (fallbackMimes[ext] || req.file.mimetype)
+        : req.file.mimetype;
+      const rows = await query(
+        "INSERT INTO media_files (mime_type, original_name, data) VALUES ($1,$2,$3) RETURNING id",
+        [mimeType, req.file.originalname, data]
+      );
+      return res.json({ success: true, url: `/media/${rows[0].id}` });
     } catch (err) {
-      console.error("[upload] image processing failed:", err.message);
-      return res.status(500).json({ success: false, error: "Could not process the image." });
+      fs.unlink(req.file.path, () => {});
+      console.error("[upload] persistent media save failed:", err.message);
+      return res.status(500).json({ success: false, error: "Could not save the uploaded file." });
     }
   }
 

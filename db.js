@@ -89,6 +89,14 @@ async function init() {
       created_at TIMESTAMP DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS media_files (
+      id SERIAL PRIMARY KEY,
+      mime_type TEXT NOT NULL,
+      original_name TEXT DEFAULT '',
+      data BYTEA NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS testimonials (
       id SERIAL PRIMARY KEY,
       image TEXT DEFAULT '',
