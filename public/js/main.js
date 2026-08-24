@@ -304,10 +304,9 @@ function renderTestimonials() {
   }
   grid.innerHTML = TESTIMONIALS.map(
     (t, i) => `
-    <button type="button" class="testimonial-card testimonial-card--image reveal" data-testimonial="${i}" aria-label="Open testimonial screenshot ${i + 1}">
+    <article class="testimonial-card testimonial-card--image reveal">
       <img class="testimonial-card__image" src="${escapeHtml(t.image)}" alt="Client testimonial screenshot ${i + 1}" loading="lazy" />
-      <span class="testimonial-card__zoom">Click to enlarge</span>
-    </button>`
+    </article>`
   ).join("");
 }
 
@@ -446,18 +445,6 @@ function initModals() {
     open(projectModal);
   });
 
-  // testimonial screenshot modal
-  document.addEventListener("click", (e) => {
-    const item = e.target.closest("[data-testimonial]");
-    if (!item) return;
-    const t = TESTIMONIALS[Number(item.getAttribute("data-testimonial"))];
-    if (!t || !isReal(t.image)) return;
-    projectBody.innerHTML = `
-      <div class="modal__project__media testimonial-modal__media">
-        <img src="${escapeHtml(t.image)}" alt="Client testimonial screenshot" />
-      </div>`;
-    open(projectModal);
-  });
 
   // legal modal
   document.addEventListener("click", (e) => {
